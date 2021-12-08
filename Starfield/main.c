@@ -5,8 +5,10 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL2_gfxPrimitives.h>
 
-#define WIDTH 800
-#define HEIGHT 800
+#define WINDOW_TITLE "Starfield"
+
+uint32_t width = 800;
+uint32_t height = 800;
 
 typedef struct {
   float x, y;
@@ -35,8 +37,8 @@ typedef struct {
 } Star;
 
 Star createStar() {
-  float x = rand() % WIDTH/2 + WIDTH/4;
-  float y = rand() % HEIGHT/2 + HEIGHT/4;
+  float x = rand() % width/2 + width/4;
+  float y = rand() % height/2 + height/4;
 
   return (Star) {.pos={.x=x, .y=y}};
 }
@@ -52,13 +54,13 @@ Star *generateStars(uint32_t *number_of_stars) {
 }
 
 void update(Star *stars, uint32_t size) {
-  Vec2 center = {.x = WIDTH / 2, .y = HEIGHT / 2};
+  Vec2 center = {.x = width / 2, .y = height / 2};
   for (uint32_t i = 0; i < size; i++) {
     stars[i].pos = vec2_add(stars[i].pos, vec2_mult(vec2_sub(stars[i].pos, center), 0.02));
 
     if (
-      stars[i].pos.x > WIDTH ||
-      stars[i].pos.y > HEIGHT ||
+      stars[i].pos.x > width ||
+      stars[i].pos.y > height ||
       stars[i].pos.x < 0 ||
       stars[i].pos.y < 0
     )
@@ -71,10 +73,10 @@ void draw(SDL_Renderer *renderer, Star *stars, uint32_t size) {
   SDL_RenderClear(renderer);
   SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0x00);
 
-  uint32_t maxDist = (WIDTH/2 * WIDTH/2) + (HEIGHT/2 * HEIGHT/2);
+  uint32_t maxDist = (width/2 * width/2) + (height/2 * height/2);
   for (uint32_t i = 0; i < size; i++) {
-    double x_dist = (stars[i].pos.x - WIDTH/2) * (stars[i].pos.x - WIDTH/2);
-    double y_dist = (stars[i].pos.y - HEIGHT/2) * (stars[i].pos.y - HEIGHT/2);
+    double x_dist = (stars[i].pos.x - width/2) * (stars[i].pos.x - width/2);
+    double y_dist = (stars[i].pos.y - height/2) * (stars[i].pos.y - height/2);
     double dist = x_dist + y_dist;
 
     int r = 1 + dist * 4 / maxDist;
@@ -83,6 +85,23 @@ void draw(SDL_Renderer *renderer, Star *stars, uint32_t size) {
   }
 
   SDL_RenderPresent(renderer);
+}
+
+void handle_events(uint8_t *quit) {
+  SDL_Event event;
+  while (SDL_PollEvent(&event)) {
+    switch (event.type) {
+      case SDL_QUIT:
+        *quit = 1;
+        break;
+      case SDL_WINDOWEVENT:
+        if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
+          width = event.window.data1;
+          height = event.window.data2;
+        }
+        break;
+    }
+  }
 }
 
 int main() {
@@ -97,32 +116,25 @@ int main() {
   SDL_Window *window;
   SDL_Renderer *renderer;
 
-  if (SDL_CreateWindowAndRenderer(WIDTH, HEIGHT, 0, &window, &renderer) > 0) {
+  if (SDL_CreateWindowAndRenderer(width, height, SDL_WINDOW_RESIZABLE, &window, &renderer) > 0) {
     fprintf(stderr, "Could not create window and/or renderer!\n");
     exit(1);
   }
 
-  SDL_SetWindowTitle(window, "Starfield");
+  SDL_SetWindowTitle(window, WINDOW_TITLE);
 
   uint32_t size;
   Star *stars = generateStars(&size);
 
   uint8_t quit = 0;
   while (!quit) {
-    SDL_Event event;
-    while (SDL_PollEvent(&event)) {
-      switch (event.type) {
-        case SDL_QUIT:
-          quit = 1;
-          break;
-      }
-    }
+    handle_events(&quit);
     if (quit) break;
 
     update(stars, size);
     draw(renderer, stars, size);
 
-    SDL_Delay(1000.0f / 60);
+    SDL_Delay(1000.0f / 30);
   }
 
   SDL_Quit();

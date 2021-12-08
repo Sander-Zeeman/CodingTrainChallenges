@@ -4,8 +4,9 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL2_gfxPrimitives.h>
 
-#define WIDTH 800
-#define HEIGHT 800
+#define WINDOW_TITLE "Template"
+uint32_t width = 800;
+uint32_t height = 800;
 
 typedef struct {
   float x, y;
@@ -39,6 +40,23 @@ void draw(SDL_Renderer *renderer) {
   SDL_RenderPresent(renderer);
 }
 
+void handle_events(uint8_t *quit) {
+  SDL_Event event;
+  while (SDL_PollEvent(&event)) {
+    switch (event.type) {
+      case SDL_QUIT:
+        *quit = 1;
+        break;
+      case SDL_WINDOWEVENT:
+        if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
+          width = event.window.data1;
+          height = event.window.data2;
+        }
+        break;
+    }
+  }
+}
+
 int main() {
   if (SDL_Init(SDL_INIT_VIDEO) > 0) {
     fprintf(stderr, "Could not initialize SDL!\n");
@@ -48,29 +66,22 @@ int main() {
   SDL_Window *window;
   SDL_Renderer *renderer;
 
-  if (SDL_CreateWindowAndRenderer(WIDTH, HEIGHT, 0, &window, &renderer) > 0) {
+  if (SDL_CreateWindowAndRenderer(width, height, SDL_WINDOW_RESIZABLE, &window, &renderer) > 0) {
     fprintf(stderr, "Could not create window and/or renderer!\n");
     exit(1);
   }
 
-  SDL_SetWindowTitle(window, "");
+  SDL_SetWindowTitle(window, WINDOW_TITLE);
 
   uint8_t quit = 0;
   while (!quit) {
-    SDL_Event event;
-    while (SDL_PollEvent(&event)) {
-      switch (event.type) {
-        case SDL_QUIT:
-          quit = 1;
-          break;
-      }
-    }
+    handle_events(&quit);
     if (quit) break;
 
     update();
     draw(renderer);
 
-    SDL_Delay(1000.0f / 60);
+    SDL_Delay(1000.0f / 30);
   }
 
   SDL_Quit();
